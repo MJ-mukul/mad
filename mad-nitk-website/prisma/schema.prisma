@@ -1,0 +1,202 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  VISITOR
+  MEMBER
+  VOLUNTEER
+  CORE_TEAM
+  HEAD
+  SECRETARY
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum ApplicationStatus {
+  DRAFT
+  SUBMITTED
+  SHORTLISTED
+  INTERVIEW
+  SELECTED
+  REJECTED
+}
+
+model User {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
+  email         String    @unique
+  passwordHash  String?
+  image         String?
+  emailVerified DateTime?
+  role          Role      @default(VISITOR)
+  member        Member?
+  sessions      Session[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Session {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  tokenHash String   @unique
+  userId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Member {
+  id                String       @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String       @unique @db.ObjectId
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department        String
+  year              String
+  bio               String
+  coverImage        String?
+  linkedin          String?
+  instagram         String?
+  skills            String[]
+  projects          String[]
+  contributionScore Int          @default(0)
+  volunteerHours    Int          @default(0)
+  badges            Badge[]
+  attendance        Attendance[]
+  certificates      Certificate[]
+}
+
+model Team {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  year      String
+  members   Json
+  createdAt DateTime @default(now())
+}
+
+model Event {
+  id                String       @id @default(auto()) @map("_id") @db.ObjectId
+  title             String
+  slug              String       @unique
+  description       String
+  startsAt          DateTime
+  endsAt            DateTime
+  venue             String
+  coverImage        String?
+  capacity          Int
+  registrationOpen  Boolean      @default(true)
+  tags              String[]
+  speakers          Json
+  registrations     Registration[]
+  attendance        Attendance[]
+  certificates      Certificate[]
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+}
+
+model Registration {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  eventId   String   @db.ObjectId
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name      String
+  email     String
+  phone     String
+  college   String
+  qrToken   String   @unique
+  createdAt DateTime @default(now())
+}
+
+model Attendance {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  eventId   String   @db.ObjectId
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  memberId  String?  @db.ObjectId
+  member    Member?  @relation(fields: [memberId], references: [id])
+  email     String
+  checkedAt DateTime @default(now())
+}
+
+model Blog {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  slug        String   @unique
+  excerpt     String
+  body        String
+  coverImage  String?
+  author      String
+  categories  String[]
+  tags        String[]
+  likes       Int      @default(0)
+  published   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model GalleryAsset {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  type        String
+  url         String
+  category    String
+  alt         String
+  eventSlug   String?
+  createdAt   DateTime @default(now())
+}
+
+model Sponsor {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  logo        String
+  website     String?
+  tier        String
+  year        String
+  contribution String
+}
+
+model Certificate {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  certificateId String @unique
+  eventId     String   @db.ObjectId
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  memberId    String?  @db.ObjectId
+  member      Member?  @relation(fields: [memberId], references: [id])
+  recipient   String
+  qrUrl       String
+  issuedAt    DateTime @default(now())
+}
+
+model Application {
+  id          String            @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  email       String
+  phone       String
+  department  String
+  year        String
+  resumeUrl   String?
+  portfolio   String?
+  linkedin    String?
+  answers     Json
+  status      ApplicationStatus @default(SUBMITTED)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+}
+
+model Badge {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  icon      String
+  memberId  String   @db.ObjectId
+  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  title     String
+  body      String
+  audience  Role[]
+  readBy    String[]
+  createdAt DateTime @default(now())
+}
